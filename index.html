@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Epic Tower Defense - FX Enhanced</title>
+    <title>Epic Tower Defense - Sound FX Edition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
@@ -212,12 +213,40 @@
         let mouse = { x: 0, y: 0, snappedX: 0, snappedY: 0 };
         let screenShakeTime = 0, screenShakeMagnitude = 0;
         let radialMenu = { active: false, x: 0, y: 0, options: [] };
+        let audioStarted = false;
 
         const path = [
             { x: 0, y: 240 }, { x: 160, y: 240 }, { x: 160, y: 80 }, { x: 400, y: 80 },
             { x: 400, y: 400 }, { x: 640, y: 400 }, { x: 640, y: 200 }, { x: 800, y: 200 }
         ];
+        
+        // --- Audio Setup ---
+        const synths = {
+            place: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.1 } }).toDestination(),
+            shoot: new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.1 } }).toDestination(),
+            ice: new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination(),
+            explosion: new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.3, sustain: 0 } }).toDestination(),
+            laser: new Tone.AMSynth({
+                harmonicity: 1.5,
+                oscillator: { type: 'fatsawtooth' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.01 },
+                modulation: { type: 'sine' },
+                modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.01 }
+            }).toDestination(),
+            ui: new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+            lifeLost: new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.1 } }).toDestination()
+        };
+        synths.laser.volume.value = -20;
 
+        function playSound(sound, note = null, duration = '8n') {
+            if (!audioStarted) return;
+            if (note) {
+                synths[sound].triggerAttackRelease(note, duration);
+            } else {
+                synths[sound].triggerAttackRelease(duration);
+            }
+        }
+        
         // --- Main Game Functions ---
         function init() {
             money = 200;
@@ -319,6 +348,7 @@
                 if (this.pathIndex >= path.length - 1) {
                     lives--; 
                     triggerScreenShake(8, 20); // Shake screen on life loss
+                    playSound('lifeLost', 'C3', '4n');
                     updateUI(); 
                     this.health = 0;
                     if (lives <= 0) gameOver(false);
@@ -451,6 +481,7 @@
                     this.level++;
                     this.totalSpent += this.upgradeCost;
                     this.applyLevelStats();
+                    playSound('ui', 'E5', '8n');
                     updateUI();
                     deselectAll();
                 }
@@ -466,6 +497,7 @@
                 else if (this.level === 3) this.setStats(190, 3, 30, 0);
             }
             attack() {
+                playSound('shoot', 'C5', '16n');
                 let pierceCount = this.level === 3 ? 1 : 0;
                 projectiles.push(new Bullet(this.x, this.y, this.target, this.damage, pierceCount));
             }
@@ -484,14 +516,25 @@
                 if (this.target) {
                     this.angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                     if (this.isInRange(this.target)) {
+                        if (!this.isFiring) {
+                            synths.laser.triggerAttack('C4');
+                            this.isFiring = true;
+                        }
                         this.target.takeDamage(this.damage * (deltaTime / 1000));
                         if (this.level === 3 && Math.random() < 0.1) {
                             this.target.applyStun(200);
                         }
+                    } else if (this.isFiring) {
+                        synths.laser.triggerRelease();
+                        this.isFiring = false;
                     }
+                } else if (this.isFiring) {
+                    synths.laser.triggerRelease();
+                    this.isFiring = false;
                 }
             }
             drawBody() {
+                super.drawBody();
                 if (this.target && this.isInRange(this.target) && this.target.health > 0) {
                     ctx.save();
                     const colors = ['rgba(255, 255, 0, 0.7)', 'rgba(255, 200, 0, 0.8)', 'rgba(0, 255, 255, 0.9)'];
@@ -501,7 +544,6 @@
                     ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.target.x, this.target.y); ctx.stroke();
                     ctx.restore();
                 }
-                super.drawBody();
             }
         }
         
@@ -513,6 +555,7 @@
                 else if (this.level === 3) this.setStats(170, 2, 5, 0);
             }
             attack() {
+                playSound('ice');
                 const slowFactor = this.level === 3 ? 0.3 : 0.5;
                 projectiles.push(new IceShard(this.x, this.y, this.target, this.damage, slowFactor));
             }
@@ -526,6 +569,7 @@
                 else if (this.level === 3) this.setStats(200, 0.8, 70, 0);
             }
             attack() {
+                playSound('shoot', 'G2', '8n');
                 const splashRadius = this.level === 3 ? 70 : 50;
                 projectiles.push(new Bomb(this.x, this.y, this.target, this.damage, splashRadius));
             }
@@ -546,7 +590,7 @@
                     money += income;
                     updateUI();
                     floatingTexts.push(new FloatingText(`+${income}`, this.x, this.y - 15, '#ffd700'));
-                    this.generationCooldown += 5000; // Add to cooldown to prevent drift
+                    this.generationCooldown += 5000;
                 }
             }
             findTarget() {} // Does not attack
@@ -614,6 +658,7 @@
         class Bomb extends Projectile {
             constructor(x, y, target, damage, splashRadius) { super(x, y, target, damage); this.speed = 5; this.emoji = '💣'; this.size = 20; this.splashRadius = splashRadius; }
             onHit(hitEnemy) {
+                playSound('explosion');
                 projectiles.push(new Explosion(hitEnemy.x, hitEnemy.y, this.splashRadius));
                 enemies.forEach(enemy => {
                     if (enemy.health > 0 && Math.hypot(hitEnemy.x - enemy.x, hitEnemy.y - enemy.y) <= this.splashRadius) {
@@ -674,6 +719,7 @@
         // --- Game Logic ---
         function spawnWave() {
             if (waveInProgress) return;
+            playSound('ui', 'C4', '8n');
             waveInProgress = true; wave++; updateUI(); startWaveBtn.disabled = true;
             const enemyCount = 10 + wave * 2;
             for (let i = 0; i < enemyCount; i++) {
@@ -687,6 +733,10 @@
         }
         
         function handleCanvasClick(e) {
+            if (!audioStarted) {
+                Tone.start();
+                audioStarted = true;
+            }
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
@@ -733,6 +783,7 @@
                 else if (selectedTowerType === 'bomb') newTower = new BombTower(x, y);
                 else if (selectedTowerType === 'goldmine') newTower = new GoldMine(x, y);
                 towers.push(newTower);
+                playSound('place', 'C4', '8n');
                 updateUI();
             }
             deselectAll();
@@ -748,11 +799,13 @@
                 deselectAll();
                 selectedTowerType = type;
                 towerButtons[type].classList.add('selected');
+                playSound('ui', 'C5', '16n');
             }
         }
 
         function selectTower(tower) {
             selectedTower = tower;
+            playSound('ui', 'A4', '16n');
             createRadialMenu(tower);
         }
 
@@ -800,6 +853,7 @@
             if (!selectedTower) return;
             money += Math.floor(selectedTower.totalSpent * 0.7);
             towers = towers.filter(t => t !== selectedTower);
+            playSound('ui', 'G4', '8n');
             updateUI();
         }
 
