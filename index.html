@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>史詩級塔防 - Emoji 強化版</title>
+    <title>史詩級塔防 - UI 體驗升級</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-            overflow: hidden; /* 防止震動時出現滾動條 */
+            overflow: hidden;
         }
         .game-container {
             display: flex;
@@ -27,16 +27,17 @@
             align-items: center;
             gap: 20px;
             width: 100%;
-            max-width: 1100px;
+            max-width: 1200px;
         }
         .main-content {
             display: flex;
             flex-direction: row;
             gap: 20px;
             width: 100%;
+            align-items: flex-start;
         }
         canvas {
-            background-color: #2c5b2d; /* 深綠色背景 */
+            background-color: #2c5b2d;
             border-radius: 12px;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
             cursor: pointer;
@@ -53,14 +54,14 @@
             flex-direction: column;
             gap: 15px;
             width: 100%;
-            max-width: 220px;
+            max-width: 250px;
         }
-        .info-box, .tower-selection, .game-controls {
+        .ui-box {
             background-color: #383838;
             padding: 15px;
             border-radius: 8px;
         }
-        h2, h3 {
+        h3 {
             margin-top: 0;
             border-bottom: 2px solid #4f4f4f;
             padding-bottom: 10px;
@@ -74,13 +75,13 @@
         }
         .tower-btn {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background-color: #007B8A;
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 1.2em; /* 放大字體以容納 Emoji */
+            font-size: 1.1em;
             transition: background-color 0.3s, transform 0.2s;
             margin-bottom: 10px;
             text-align: left;
@@ -94,83 +95,30 @@
             color: #1a1a1a;
             box-shadow: 0 0 10px #ffc107;
         }
-        .start-btn {
-             width: 100%;
-            padding: 12px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s;
-        }
-        .start-btn:hover {
-            background-color: #66BB6A;
-        }
+        
         .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.7);
-            justify-content: center;
-            align-items: center;
+            display: none; position: fixed; z-index: 100; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);
+            justify-content: center; align-items: center;
         }
         .modal-content {
-            background: #2a2a2a;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 5px 25px rgba(0, 255, 255, 0.3);
-            border: 1px solid #00e5ff;
+            background: #2a2a2a; padding: 30px; border-radius: 15px; text-align: center;
+            box-shadow: 0 5px 25px rgba(0, 255, 255, 0.3); border: 1px solid #00e5ff;
             animation: fadeIn 0.5s;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .modal-content h2 { font-size: 2.5em; color: #ffc107; }
+        .modal-content p { font-size: 1.2em; margin-bottom: 25px;}
+        .modal-btn {
+            padding: 10px 20px; font-size: 1em; cursor: pointer; border-radius: 8px;
+            border: none; color: #1a1a1a; transition: all 0.3s; margin: 0 10px;
         }
-        .modal-content h2 {
-            font-size: 2.5em;
-            color: #ff4d4d;
-        }
-        .modal-content p {
-            font-size: 1.2em;
-        }
-        .modal-content button {
-            padding: 12px 25px;
-            font-size: 1.1em;
-            cursor: pointer;
-            border-radius: 8px;
-            border: none;
-            background: #00e5ff;
-            color: #1a1a1a;
-            transition: all 0.3s;
-        }
-        .modal-content button:hover {
-            background: #fff;
-            box-shadow: 0 0 15px #fff;
-        }
+        .confirm-btn { background-color: #4CAF50; color: white;}
+        .cancel-btn { background-color: #f44336; color: white;}
 
-        /* 響應式設計 */
-        @media (max-width: 900px) {
-            .main-content {
-                flex-direction: column;
-            }
-            .controls-panel {
-                max-width: 100%;
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: space-around;
-            }
-            .info-box, .tower-selection, .game-controls {
-                flex-grow: 1;
-                min-width: 200px;
-            }
+        @media (max-width: 950px) {
+            .main-content { flex-direction: column; }
+            .controls-panel { max-width: 100%; }
         }
     </style>
 </head>
@@ -180,22 +128,25 @@
         <div class="main-content">
             <canvas id="gameCanvas"></canvas>
             <div class="controls-panel">
-                <div class="info-box">
+                <div class="ui-box">
                     <h3>📊 狀態</h3>
-                    <div class="info-item"><span>💰 金錢:</span> <span id="money">150</span></div>
+                    <div class="info-item"><span>💰 金錢:</span> <span id="money">200</span></div>
                     <div class="info-item"><span>❤️ 生命:</span> <span id="lives">20</span></div>
                     <div class="info-item"><span>🚩 波次:</span> <span id="wave">0</span></div>
                 </div>
 
-                <div class="tower-selection">
-                    <h3>🗼 防禦塔</h3>
+                <div class="ui-box">
+                    <h3>🗼 建造防禦塔</h3>
                     <button class="tower-btn" id="select-turret">🔫 砲塔 (50$)</button>
                     <button class="tower-btn" id="select-laser">⚡️ 雷射塔 (80$)</button>
+                    <button class="tower-btn" id="select-ice">❄️ 冰霜塔 (60$)</button>
+                    <button class="tower-btn" id="select-bomb">💣 炸彈塔 (100$)</button>
                 </div>
 
-                <div class="game-controls">
+                <div class="ui-box">
                     <h3>⚙️ 控制</h3>
-                    <button class="start-btn" id="start-wave-btn">開始下一波</button>
+                    <button class="tower-btn" id="start-wave-btn" style="background-color: #4CAF50;">開始下一波</button>
+                    <button class="tower-btn" id="restart-btn" style="background-color: #ff9800;">重新開始</button>
                 </div>
             </div>
         </div>
@@ -206,144 +157,140 @@
             <h2 id="gameOverTitle">遊戲結束</h2>
             <p id="gameOverMessage">你的基地被摧毀了！</p>
             <p>你撐到了第 <span id="finalWave"></span> 波。</p>
-            <button id="restartBtn">重新開始</button>
+            <button id="playAgainBtn" class="modal-btn confirm-btn">再玩一次</button>
+        </div>
+    </div>
+    
+    <div id="confirmRestartModal" class="modal">
+        <div class="modal-content">
+            <h2>重新開始？</h2>
+            <p>您確定要放棄目前的進度並重新開始遊戲嗎？</p>
+            <div>
+                <button id="confirmRestart" class="modal-btn confirm-btn">確定</button>
+                <button id="cancelRestart" class="modal-btn cancel-btn">取消</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // --- DOM Elements ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
         const moneyEl = document.getElementById('money');
         const livesEl = document.getElementById('lives');
         const waveEl = document.getElementById('wave');
         const startWaveBtn = document.getElementById('start-wave-btn');
-        const turretBtn = document.getElementById('select-turret');
-        const laserBtn = document.getElementById('select-laser');
+        const towerButtons = {
+            turret: document.getElementById('select-turret'),
+            laser: document.getElementById('select-laser'),
+            ice: document.getElementById('select-ice'),
+            bomb: document.getElementById('select-bomb')
+        };
+        const restartBtn = document.getElementById('restart-btn');
         const gameOverModal = document.getElementById('gameOverModal');
-        const restartBtn = document.getElementById('restartBtn');
+        const playAgainBtn = document.getElementById('playAgainBtn');
         const finalWaveEl = document.getElementById('finalWave');
-        const gameOverTitle = document.getElementById('gameOverTitle');
-        const gameOverMessage = document.getElementById('gameOverMessage');
+        const confirmRestartModal = document.getElementById('confirmRestartModal');
+        const confirmRestartBtn = document.getElementById('confirmRestart');
+        const cancelRestartBtn = document.getElementById('cancelRestart');
 
+        // --- Game Setup ---
         let canvasWidth = 800;
         let canvasHeight = 500;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
-
-        // --- 遊戲變數 ---
         const gridSize = 40;
-        let mouse = { x: 0, y: 0, snappedX: 0, snappedY: 0 };
-        let screenShakeTime = 0;
-        let screenShakeMagnitude = 0;
 
-        // 遊戲狀態變數
+        // --- Game State ---
         let money, lives, wave, enemies, towers, projectiles;
         let selectedTowerType = null;
+        let selectedTower = null;
         let waveInProgress = false;
         let animationFrameId;
+        let mouse = { x: 0, y: 0, snappedX: 0, snappedY: 0 };
+        let screenShakeTime = 0, screenShakeMagnitude = 0;
+        let radialMenu = { active: false, x: 0, y: 0, options: [] };
 
         const path = [
             { x: 0, y: 240 }, { x: 160, y: 240 }, { x: 160, y: 80 }, { x: 400, y: 80 },
             { x: 400, y: 400 }, { x: 640, y: 400 }, { x: 640, y: 200 }, { x: 800, y: 200 }
         ];
 
+        // --- Main Game Functions ---
         function init() {
-            money = 150; // 增加初始金錢
+            money = 200;
             lives = 20;
             wave = 0;
             enemies = [];
             towers = [];
             projectiles = [];
             waveInProgress = false;
-            selectedTowerType = null;
-            
+            deselectAll();
             updateUI();
             startWaveBtn.disabled = false;
             gameOverModal.style.display = 'none';
-
+            confirmRestartModal.style.display = 'none';
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             gameLoop();
         }
-        
+
         function updateUI() {
             moneyEl.textContent = money;
             livesEl.textContent = lives;
             waveEl.textContent = wave;
         }
 
-        function isOnPath(x, y, buffer = gridSize) {
-            for (let i = 0; i < path.length - 1; i++) {
-                const p1 = path[i];
-                const p2 = path[i+1];
-                const rectX = Math.min(p1.x, p2.x) - buffer;
-                const rectY = Math.min(p1.y, p2.y) - buffer;
-                const rectW = Math.abs(p1.x - p2.x) + buffer * 2;
-                const rectH = Math.abs(p1.y - p2.y) + buffer * 2;
-                if (x >= rectX && x <= rectX + rectW && y >= rectY && y <= rectY + rectH) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         function triggerScreenShake(magnitude, duration) {
             screenShakeMagnitude = magnitude;
             screenShakeTime = duration;
         }
-
+        
+        // --- Classes ---
         class Enemy {
             constructor(health, speed, emoji) {
-                this.x = path[0].x - 20;
-                this.y = path[0].y;
+                this.x = path[0].x - 20; this.y = path[0].y;
                 this.pathIndex = 0;
-                this.maxHealth = health;
-                this.health = health;
-                this.speed = speed;
-                this.emoji = emoji;
-                this.size = 25;
-                this.hitTimer = 0; // 擊中閃爍計時器
+                this.maxHealth = health; this.health = health;
+                this.baseSpeed = speed; this.speed = speed;
+                this.emoji = emoji; this.size = 25;
+                this.hitTimer = 0; this.slowTimer = 0;
             }
-
             draw() {
-                // 繪製血條
+                ctx.save();
+                ctx.globalAlpha = 1;
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.fillRect(this.x - 15, this.y - 25, 30, 5);
                 ctx.fillStyle = '#32cd32';
                 ctx.fillRect(this.x - 15, this.y - 25, 30 * (this.health / this.maxHealth), 5);
-
-                // 繪製 Emoji
+                
                 ctx.font = `${this.size}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
+                if (this.slowTimer > 0) ctx.filter = 'saturate(2) hue-rotate(180deg)';
                 if (this.hitTimer > 0) {
-                    ctx.globalAlpha = this.hitTimer / 100;
-                    ctx.fillStyle = 'white';
-                    ctx.fillText(this.emoji, this.x, this.y);
-                    ctx.globalAlpha = 1;
-                    this.hitTimer -= 10;
+                    ctx.globalAlpha = 0.5 + (this.hitTimer % 2) * 0.5;
+                    this.hitTimer--;
                 }
                 ctx.fillText(this.emoji, this.x, this.y);
+                ctx.restore();
             }
-            
-            takeDamage(amount) {
-                this.health -= amount;
-                this.hitTimer = 100; // 啟動閃爍
+            takeDamage(amount) { this.health -= amount; this.hitTimer = 10; }
+            applySlow(duration, factor) { this.slowTimer = duration; this.speed = this.baseSpeed * factor; }
+            update(deltaTime) {
+                if (this.slowTimer > 0) {
+                    this.slowTimer -= deltaTime;
+                    if (this.slowTimer <= 0) this.speed = this.baseSpeed;
+                }
+                this.move();
             }
-
             move() {
                 if (this.pathIndex >= path.length - 1) {
-                    lives--;
-                    triggerScreenShake(5, 15); // 觸發震動
-                    updateUI();
-                    this.health = 0;
+                    lives--; triggerScreenShake(5, 15); updateUI(); this.health = 0;
                     if (lives <= 0) gameOver(false);
                     return;
                 }
                 const target = path[this.pathIndex + 1];
-                const dx = target.x - this.x;
-                const dy = target.y - this.y;
+                const dx = target.x - this.x, dy = target.y - this.y;
                 const distance = Math.hypot(dx, dy);
                 if (distance < this.speed) {
                     this.x = target.x; this.y = target.y; this.pathIndex++;
@@ -352,52 +299,57 @@
                 }
             }
         }
+        class NormalEnemy extends Enemy { constructor() { super(60 + wave * 15, 1.2 + wave * 0.1, '🐛'); } }
+        class FastEnemy extends Enemy { constructor() { super(40 + wave * 10, 2.2 + wave * 0.15, '🐜'); } }
+        class ArmoredEnemy extends Enemy { constructor() { super(200 + wave * 40, 0.8 + wave * 0.05, '🛡️'); } }
         
-        class NormalEnemy extends Enemy { constructor() { super(60 + wave * 15, 1 + wave * 0.1, '🐛'); } }
-        class FastEnemy extends Enemy { constructor() { super(40 + wave * 10, 2 + wave * 0.15, '🐜'); } }
-
         class Tower {
-            constructor(x, y, range, fireRate, cost, emoji) {
-                this.x = x; this.y = y; this.range = range; this.fireRate = fireRate;
-                this.cost = cost; this.emoji = emoji; this.target = null;
-                this.fireCooldown = 0; this.angle = 0;
-                this.placementScale = 1.5; // 放置動畫用
+            constructor(x, y, cost, emoji) {
+                this.x = x; this.y = y; this.cost = cost; this.emoji = emoji;
+                this.level = 1; this.totalSpent = cost;
+                this.target = null; this.fireCooldown = 0; this.angle = 0;
+                this.placementScale = 1.5;
             }
-
+            setStats(range, fireRate, damage, upgradeCost) {
+                this.range = range; this.fireRate = fireRate; this.damage = damage;
+                this.upgradeCost = upgradeCost;
+            }
             draw() {
+                ctx.save();
+                ctx.globalAlpha = 1.0;
                 let currentScale = 1;
                 if (this.placementScale > 1) {
-                    currentScale = this.placementScale;
-                    this.placementScale -= 0.05;
+                    currentScale = this.placementScale; this.placementScale -= 0.05;
                 }
                 const size = 30 * currentScale;
-
                 ctx.font = `${size}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 
-                // *** 修正：確保塔的 Emoji 總是以完全不透明的方式繪製 ***
-                // 重置 globalAlpha 並設定一個不透明的 fillStyle 來覆蓋之前繪製網格時的透明樣式
-                ctx.globalAlpha = 1.0;
-                ctx.fillStyle = 'rgba(0, 0, 0, 1)'; // 任何不透明的顏色都可以
-
-                ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
                 ctx.fillText(this.emoji, 0, 0);
                 ctx.restore();
             }
-            
+            drawSelection() {
+                ctx.save();
+                ctx.globalAlpha = 1.0;
+                ctx.strokeStyle = '#ffc107'; ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 25, 0, Math.PI * 2);
+                ctx.stroke();
+                this.drawRange();
+                ctx.restore();
+            }
             drawRange() {
+                ctx.save();
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
             }
-
             findTarget() {
                 if (this.target && this.target.health > 0 && this.isInRange(this.target)) return;
                 this.target = null;
@@ -409,13 +361,9 @@
                     }
                 });
             }
-
             isInRange(enemy) { return Math.hypot(this.x - enemy.x, this.y - enemy.y) <= this.range; }
-
-            update(deltaTime) {
-                if (this.target) {
-                    this.angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-                }
+            updateBase(deltaTime) {
+                if (this.target) this.angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                 this.fireCooldown -= deltaTime;
                 this.findTarget();
                 if (this.target && this.fireCooldown <= 0) {
@@ -423,128 +371,273 @@
                     this.fireCooldown = 1000 / this.fireRate;
                 }
             }
+            upgrade() {
+                if (this.level < 2 && money >= this.upgradeCost) {
+                    money -= this.upgradeCost;
+                    this.level++;
+                    this.totalSpent += this.upgradeCost;
+                    this.applyLevelStats();
+                    updateUI();
+                    deselectAll();
+                }
+            }
         }
 
         class Turret extends Tower {
-            constructor(x, y) { super(x, y, 150, 2, 50, '🔫'); this.damage = 15; }
+            constructor(x, y) { super(x, y, 50, '🔫'); this.applyLevelStats(); }
+            applyLevelStats() {
+                if (this.level === 1) this.setStats(150, 2, 15, 75);
+                else if (this.level === 2) this.setStats(170, 2.5, 25, 0);
+            }
+            update(deltaTime) { this.updateBase(deltaTime); }
             attack() { projectiles.push(new Bullet(this.x, this.y, this.target, this.damage)); }
         }
 
         class LaserTower extends Tower {
-            constructor(x, y) { super(x, y, 120, 10, 80, '⚡️'); this.damagePerSecond = 25; }
-            // 雷射塔有自己的更新邏輯，不使用父類的 attack()
+            constructor(x, y) { super(x, y, 80, '⚡️'); this.applyLevelStats(); }
+            applyLevelStats() {
+                if (this.level === 1) this.setStats(120, 10, 25, 120);
+                else if (this.level === 2) this.setStats(140, 10, 45, 0);
+            }
             update(deltaTime) {
-                this.findTarget(); // 尋找目標
-
+                this.findTarget();
                 if (this.target) {
-                    // 讓塔朝向目標
                     this.angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-                    if (this.isInRange(this.target)) {
-                        // 如果目標在範圍內，造成持續傷害
-                        this.target.takeDamage(this.damagePerSecond * (deltaTime / 1000));
-                    }
+                    if (this.isInRange(this.target)) this.target.takeDamage(this.damage * (deltaTime / 1000));
                 }
-                // 雷射塔不需要冷卻時間，所以我們不呼叫 super.update() 或處理 fireCooldown
             }
             draw() {
                 super.draw();
-                // 如果有目標且在範圍內，繪製雷射光束
                 if (this.target && this.isInRange(this.target) && this.target.health > 0) {
-                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)'; // 黃色雷射
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y);
-                    ctx.lineTo(this.target.x, this.target.y);
-                    ctx.stroke();
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.target.x, this.target.y); ctx.stroke();
+                    ctx.restore();
                 }
             }
         }
         
-        class Bullet {
+        class IceTower extends Tower {
+            constructor(x, y) { super(x, y, 60, '❄️'); this.applyLevelStats(); }
+            applyLevelStats() {
+                if (this.level === 1) this.setStats(130, 1, 2, 90);
+                else if (this.level === 2) this.setStats(150, 1.5, 4, 0);
+            }
+            update(deltaTime) { this.updateBase(deltaTime); }
+            attack() { projectiles.push(new IceShard(this.x, this.y, this.target, this.damage)); }
+        }
+        
+        class BombTower extends Tower {
+            constructor(x, y) { super(x, y, 100, '💣'); this.applyLevelStats(); }
+            applyLevelStats() {
+                if (this.level === 1) this.setStats(160, 0.5, 30, 150);
+                else if (this.level === 2) this.setStats(180, 0.7, 50, 0);
+            }
+            update(deltaTime) { this.updateBase(deltaTime); }
+            attack() { projectiles.push(new Bomb(this.x, this.y, this.target, this.damage)); }
+        }
+
+        class Projectile {
             constructor(x, y, target, damage) {
-                this.x = x; this.y = y; this.target = target;
-                this.damage = damage; this.speed = 10; this.emoji = '💥';
+                this.x = x; this.y = y; this.target = target; this.damage = damage;
             }
             move() {
                 if (!this.target || this.target.health <= 0) return false;
-                const dx = this.target.x - this.x; const dy = this.target.y - this.y;
+                const dx = this.target.x - this.x, dy = this.target.y - this.y;
                 const distance = Math.hypot(dx, dy);
                 if (distance < this.speed) {
-                    this.target.takeDamage(this.damage);
+                    this.onHit();
                     return false;
                 } else {
                     this.x += (dx / distance) * this.speed; this.y += (dy / distance) * this.speed;
                     return true;
                 }
             }
-            draw() { ctx.font = '15px sans-serif'; ctx.fillText(this.emoji, this.x, this.y); }
+            draw() { ctx.save(); ctx.font = `${this.size}px sans-serif`; ctx.fillText(this.emoji, this.x, this.y); ctx.restore();}
         }
-        
+        class Bullet extends Projectile {
+            constructor(x, y, target, damage) { super(x, y, target, damage); this.speed = 10; this.emoji = '💥'; this.size = 15; }
+            onHit() { this.target.takeDamage(this.damage); }
+        }
+        class IceShard extends Projectile {
+            constructor(x, y, target, damage) { super(x, y, target, damage); this.speed = 8; this.emoji = '❄️'; this.size = 18; }
+            onHit() { this.target.takeDamage(this.damage); this.target.applySlow(2000, 0.5); }
+        }
+        class Bomb extends Projectile {
+            constructor(x, y, target, damage) { super(x, y, target, damage); this.speed = 5; this.emoji = '💣'; this.size = 20; this.splashRadius = 50; }
+            onHit() {
+                enemies.forEach(enemy => {
+                    if (Math.hypot(this.target.x - enemy.x, this.target.y - enemy.y) <= this.splashRadius) {
+                        enemy.takeDamage(this.damage);
+                    }
+                });
+                projectiles.push(new Explosion(this.target.x, this.target.y, this.splashRadius));
+            }
+        }
+        class Explosion {
+            constructor(x, y, radius) { this.x = x; this.y = y; this.maxRadius = radius; this.radius = 0; this.life = 20; }
+            move() { this.radius += this.maxRadius / 20; this.life--; return this.life > 0; }
+            draw() {
+                ctx.save();
+                ctx.fillStyle = `rgba(255, 165, 0, ${this.life / 20 * 0.7})`;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // --- Game Logic ---
         function spawnWave() {
             if (waveInProgress) return;
             waveInProgress = true; wave++; updateUI(); startWaveBtn.disabled = true;
             const enemyCount = 10 + wave * 2;
             for (let i = 0; i < enemyCount; i++) {
                 setTimeout(() => {
-                    if (wave > 2 && Math.random() < 0.4) { enemies.push(new FastEnemy()); } 
-                    else { enemies.push(new NormalEnemy()); }
+                    if (wave >= 4 && Math.random() < 0.25) enemies.push(new ArmoredEnemy());
+                    else if (wave > 2 && Math.random() < 0.4) enemies.push(new FastEnemy());
+                    else enemies.push(new NormalEnemy());
                 }, i * 500);
             }
         }
         
-        function placeTower() {
-            if (!selectedTowerType) return;
-            const x = mouse.snappedX; const y = mouse.snappedY;
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
             
-            if (isOnPath(x, y) || towers.some(t => t.x === x && t.y === y)) {
-                console.log("無法在此處放置"); return;
+            // Priority 1: Handle clicks on the active radial menu
+            if (radialMenu.active) {
+                let optionClicked = false;
+                for (const option of radialMenu.options) {
+                    if (Math.hypot(clickX - option.x, clickY - option.y) < option.radius) {
+                        option.action(); // Perform the upgrade or sell
+                        optionClicked = true;
+                        break;
+                    }
+                }
+                // Always deselect after a click when the menu is open, whether on an option or not.
+                deselectAll();
+                return; // Stop further processing
             }
 
-            let towerCost = selectedTowerType === 'turret' ? 50 : 80;
-            if (money >= towerCost) {
-                money -= towerCost;
+            // Priority 2: If a tower type is selected for building, try to place it
+            if (selectedTowerType) {
+                placeTower();
+                return; // Stop further processing
+            }
+
+            // Priority 3: If nothing is being built, check if an existing tower was clicked
+            for (const tower of towers) {
+                if (Math.hypot(clickX - tower.x, clickY - tower.y) < gridSize / 2) {
+                    selectTower(tower); // This will open the radial menu
+                    return;
+                }
+            }
+        }
+
+        function placeTower() {
+            const x = mouse.snappedX; const y = mouse.snappedY;
+            if (isOnPath(x, y) || towers.some(t => t.x === x && t.y === y)) return;
+            
+            const costs = { turret: 50, laser: 80, ice: 60, bomb: 100 };
+            const cost = costs[selectedTowerType];
+
+            if (money >= cost) {
+                money -= cost;
                 let newTower;
                 if (selectedTowerType === 'turret') newTower = new Turret(x, y);
                 else if (selectedTowerType === 'laser') newTower = new LaserTower(x, y);
+                else if (selectedTowerType === 'ice') newTower = new IceTower(x, y);
+                else if (selectedTowerType === 'bomb') newTower = new BombTower(x, y);
                 towers.push(newTower);
                 updateUI();
-            } else { console.log("金錢不足"); }
-            
-            selectedTowerType = null;
-            turretBtn.classList.remove('selected');
-            laserBtn.classList.remove('selected');
+            }
+            deselectAll();
         }
         
-        function selectTower(type) {
-            const cost = type === 'turret' ? 50 : 80;
-            if (money >= cost) {
-                selectedTowerType = selectedTowerType === type ? null : type;
-                turretBtn.classList.toggle('selected', selectedTowerType === 'turret');
-                laserBtn.classList.toggle('selected', selectedTowerType === 'laser');
+        function selectBuildTower(type) {
+            const costs = { turret: 50, laser: 80, ice: 60, bomb: 100 };
+            if (money < costs[type]) { deselectAll(); return; }
+            
+            if (selectedTowerType === type) {
+                deselectAll();
             } else {
-                console.log("金錢不足以選擇此塔");
-                selectedTowerType = null;
-                turretBtn.classList.remove('selected');
-                laserBtn.classList.remove('selected');
+                deselectAll();
+                selectedTowerType = type;
+                towerButtons[type].classList.add('selected');
             }
+        }
+
+        function selectTower(tower) {
+            selectedTower = tower;
+            createRadialMenu(tower);
+        }
+
+        function deselectAll() {
+            selectedTower = null;
+            selectedTowerType = null;
+            radialMenu.active = false;
+            Object.values(towerButtons).forEach(btn => btn.classList.remove('selected'));
+        }
+        
+        function createRadialMenu(tower) {
+            radialMenu.active = true;
+            radialMenu.x = tower.x;
+            radialMenu.y = tower.y;
+            radialMenu.options = [];
+            const optionRadius = 20;
+            const menuRadius = 50;
+
+            // Sell Option
+            const sellAngle = Math.PI / 4;
+            radialMenu.options.push({
+                x: tower.x + menuRadius * Math.cos(sellAngle),
+                y: tower.y + menuRadius * Math.sin(sellAngle),
+                radius: optionRadius,
+                label: '💰',
+                text: `${Math.floor(tower.totalSpent * 0.7)}$`,
+                color: 'rgba(244, 67, 54, 0.8)',
+                action: () => sellSelectedTower()
+            });
+
+            // Upgrade Option
+            if (tower.level < 2) {
+                const upgradeAngle = -Math.PI / 4;
+                radialMenu.options.push({
+                    x: tower.x + menuRadius * Math.cos(upgradeAngle),
+                    y: tower.y + menuRadius * Math.sin(upgradeAngle),
+                    radius: optionRadius,
+                    label: '⬆️',
+                    text: `${tower.upgradeCost}$`,
+                    color: money >= tower.upgradeCost ? 'rgba(76, 175, 80, 0.8)' : 'rgba(150, 150, 150, 0.8)',
+                    action: () => tower.upgrade()
+                });
+            }
+        }
+
+        function sellSelectedTower() {
+            if (!selectedTower) return;
+            money += Math.floor(selectedTower.totalSpent * 0.7);
+            towers = towers.filter(t => t !== selectedTower);
+            updateUI();
         }
 
         function gameOver(isWin) {
             cancelAnimationFrame(animationFrameId);
             gameOverModal.style.display = 'flex';
-            finalWaveEl.textContent = wave;
+            document.getElementById('finalWave').textContent = wave;
             if (isWin) {
-                gameOverTitle.textContent = "🏆 恭喜獲勝！";
-                gameOverMessage.textContent = "你成功守護了基地！";
+                document.getElementById('gameOverTitle').textContent = "🏆 恭喜獲勝！";
+                document.getElementById('gameOverMessage').textContent = "你成功守護了基地！";
             } else {
-                gameOverTitle.textContent = "☠️ 遊戲結束";
-                gameOverMessage.textContent = "你的基地被摧毀了！";
+                document.getElementById('gameOverTitle').textContent = "☠️ 遊戲結束";
+                document.getElementById('gameOverMessage').textContent = "你的基地被摧毀了！";
             }
         }
         
+        // --- Game Loop ---
         let lastTime = 0;
         function gameLoop(timestamp) {
-            const deltaTime = timestamp - lastTime;
+            const deltaTime = timestamp - lastTime || 0;
             lastTime = timestamp;
 
             ctx.save();
@@ -557,8 +650,6 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // *** 移除：不再繪製背景裝飾 ***
-
             ctx.strokeStyle = '#8b4513'; ctx.lineWidth = gridSize; ctx.lineCap = 'round';
             ctx.beginPath(); ctx.moveTo(path[0].x, path[0].y);
             for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
@@ -566,15 +657,22 @@
 
             drawPlacementGrid();
 
-            towers.forEach(t => { t.update(deltaTime); t.draw(); });
-            enemies.forEach(e => { e.move(); e.draw(); });
+            enemies.forEach(e => e.update(deltaTime));
+            towers.forEach(t => t.update(deltaTime));
             projectiles = projectiles.filter(p => p.move());
+
+            towers.forEach(t => t.draw());
+            if (selectedTower) selectedTower.drawSelection();
+            
+            enemies.forEach(e => e.draw());
             projectiles.forEach(p => p.draw());
+            
+            drawRadialMenu();
 
             const oldEnemyCount = enemies.length;
             enemies = enemies.filter(e => e.health > 0);
             if (oldEnemyCount > enemies.length) {
-                money += (oldEnemyCount - enemies.length) * 5;
+                money += (oldEnemyCount - enemies.length) * 10;
                 updateUI();
             }
             
@@ -589,21 +687,26 @@
         }
         
         function drawPlacementGrid() {
+            ctx.save();
             ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
             for (let y = 0; y < canvas.height; y += gridSize) {
                 for (let x = 0; x < canvas.width; x += gridSize) {
                     const centerX = x + gridSize / 2;
                     const centerY = y + gridSize / 2;
                     if (!isOnPath(centerX, centerY) && !towers.some(t => t.x === centerX && t.y === centerY)) {
-                       ctx.fillRect(x, y, gridSize-2, gridSize-2);
+                       ctx.fillRect(x, y, gridSize-1, gridSize-1);
                     }
                 }
             }
+            ctx.restore();
         }
 
         function drawTowerPreview() {
             if (!selectedTowerType) return;
+            ctx.save();
             const x = mouse.snappedX; const y = mouse.snappedY;
+            const ranges = { turret: 150, laser: 120, ice: 130, bomb: 160 };
+
             if (isOnPath(x, y) || towers.some(t => t.x === x && t.y === y)) {
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
             } else {
@@ -611,19 +714,40 @@
             }
             ctx.fillRect(x - gridSize/2, y - gridSize/2, gridSize, gridSize);
             
-            // 預覽攻擊範圍
-            let previewRange = selectedTowerType === 'turret' ? 150 : 120;
-            ctx.beginPath();
-            ctx.arc(x, y, previewRange, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(x, y, ranges[selectedTowerType], 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawRadialMenu() {
+            if (!radialMenu.active) return;
+            ctx.save();
+            for (const option of radialMenu.options) {
+                ctx.beginPath();
+                ctx.arc(option.x, option.y, option.radius, 0, Math.PI * 2);
+                ctx.fillStyle = option.color;
+                ctx.fill();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '18px sans-serif';
+                ctx.fillStyle = 'white';
+                ctx.fillText(option.label, option.x, option.y - 5);
+                ctx.font = '10px sans-serif';
+                ctx.fillText(option.text, option.x, option.y + 10);
+            }
+            ctx.restore();
         }
 
+        // --- Event Listeners ---
         startWaveBtn.addEventListener('click', spawnWave);
-        turretBtn.addEventListener('click', () => selectTower('turret'));
-        laserBtn.addEventListener('click', () => selectTower('laser'));
-        canvas.addEventListener('click', placeTower);
-        restartBtn.addEventListener('click', init);
+        Object.keys(towerButtons).forEach(key => {
+            towerButtons[key].addEventListener('click', () => selectBuildTower(key));
+        });
+        canvas.addEventListener('click', handleCanvasClick);
+        playAgainBtn.addEventListener('click', init);
+        restartBtn.addEventListener('click', () => { confirmRestartModal.style.display = 'flex'; });
+        cancelRestartBtn.addEventListener('click', () => { confirmRestartModal.style.display = 'none'; });
+        confirmRestartBtn.addEventListener('click', init);
         
         canvas.addEventListener('mousemove', e => {
             const rect = canvas.getBoundingClientRect();
@@ -633,19 +757,19 @@
             mouse.snappedY = Math.floor(mouse.y / gridSize) * gridSize + gridSize / 2;
         });
 
-        function resizeCanvas() {
-            const container = canvas.parentElement;
-            let newWidth = container.clientWidth;
-            if (window.innerWidth <= 900) {
-                 newWidth = Math.min(container.clientWidth, 800);
+        function isOnPath(x, y, buffer = gridSize) {
+            for (let i = 0; i < path.length - 1; i++) {
+                const p1 = path[i], p2 = path[i+1];
+                const rectX = Math.min(p1.x, p2.x) - buffer, rectY = Math.min(p1.y, p2.y) - buffer;
+                const rectW = Math.abs(p1.x - p2.x) + buffer * 2, rectH = Math.abs(p1.y - p2.y) + buffer * 2;
+                if (x >= rectX && x <= rectX + rectW && y >= rectY && y <= rectY + rectH) return true;
             }
-            canvas.style.width = newWidth + 'px';
-            canvas.style.height = (newWidth * (canvasHeight / canvasWidth)) + 'px';
+            return false;
         }
-        window.addEventListener('resize', resizeCanvas);
 
+        // --- Initialisation ---
         init();
-        resizeCanvas();
+
     </script>
 </body>
 </html>
