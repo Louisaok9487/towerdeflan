@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Epic Tower Defense - Sound FX Edition</title>
+    <title>Epic Tower Defense - Leaderboard Edition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
@@ -106,16 +107,34 @@
             background: #2a2a2a; padding: 30px; border-radius: 15px; text-align: center;
             box-shadow: 0 5px 25px rgba(0, 255, 255, 0.3); border: 1px solid #00e5ff;
             animation: fadeIn 0.5s;
+            width: 90%;
+            max-width: 400px;
         }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         .modal-content h2 { font-size: 2.5em; color: #ffc107; }
         .modal-content p { font-size: 1.2em; margin-bottom: 25px;}
         .modal-btn {
             padding: 10px 20px; font-size: 1em; cursor: pointer; border-radius: 8px;
-            border: none; color: #1a1a1a; transition: all 0.3s; margin: 0 10px;
+            border: none; color: white; transition: all 0.3s; margin: 0 10px;
         }
-        .confirm-btn { background-color: #4CAF50; color: white;}
-        .cancel-btn { background-color: #f44336; color: white;}
+        .confirm-btn { background-color: #4CAF50; }
+        .cancel-btn { background-color: #f44336; }
+        .name-input {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: white;
+            font-size: 1em;
+        }
+        .leaderboard { list-style: none; padding: 0; text-align: left; }
+        .leaderboard li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #444; }
+        .leaderboard li:last-child { border-bottom: none; }
+        .leaderboard .rank { font-weight: bold; color: #ffc107; width: 30px; }
+        .leaderboard .name { flex-grow: 1; margin-left: 10px; }
+        .leaderboard .score { font-weight: bold; }
 
         @media (max-width: 950px) {
             .main-content { flex-direction: column; }
@@ -150,6 +169,13 @@
                     <button class="tower-btn" id="start-wave-btn" style="background-color: #4CAF50;">Start Next Wave</button>
                     <button class="tower-btn" id="restart-btn" style="background-color: #ff9800;">Restart</button>
                 </div>
+                
+                <div class="ui-box">
+                    <h3>🏆 Leaderboard</h3>
+                    <ul id="leaderboard" class="leaderboard">
+                        <li>Loading...</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -159,7 +185,9 @@
             <h2 id="gameOverTitle">Game Over</h2>
             <p id="gameOverMessage">Your base has been destroyed!</p>
             <p>You survived until wave <span id="finalWave"></span>.</p>
-            <button id="playAgainBtn" class="modal-btn confirm-btn">Play Again</button>
+            <input type="text" id="playerNameInput" class="name-input" placeholder="Enter your name" maxlength="10">
+            <button id="submitScoreBtn" class="modal-btn confirm-btn">Submit Score</button>
+            <button id="playAgainBtn" class="modal-btn cancel-btn">Play Again</button>
         </div>
     </div>
     
@@ -175,6 +203,15 @@
     </div>
 
     <script>
+        // --- Supabase Setup ---
+        const SUPABASE_URL = 'https://miixidjkojjuwiikklvo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1paXhpZGprb2pqdXdpaWtrbHZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNzkzMjYsImV4cCI6MjA2Nzc1NTMyNn0.j5xBHAUginwitWKo_ADOXSHM0C-UWv8HLZgY8efmVeQ';
+        let supabaseClient = null;
+        if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+            // The global `supabase` object is provided by the script tag
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+
         // --- DOM Elements ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -192,10 +229,13 @@
         const restartBtn = document.getElementById('restart-btn');
         const gameOverModal = document.getElementById('gameOverModal');
         const playAgainBtn = document.getElementById('playAgainBtn');
+        const submitScoreBtn = document.getElementById('submitScoreBtn');
+        const playerNameInput = document.getElementById('playerNameInput');
         const finalWaveEl = document.getElementById('finalWave');
         const confirmRestartModal = document.getElementById('confirmRestartModal');
         const confirmRestartBtn = document.getElementById('confirmRestart');
         const cancelRestartBtn = document.getElementById('cancelRestart');
+        const leaderboardEl = document.getElementById('leaderboard');
 
         // --- Game Setup ---
         let canvasWidth = 800;
@@ -264,6 +304,7 @@
             confirmRestartModal.style.display = 'none';
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             gameLoop();
+            fetchLeaderboard();
         }
 
         function updateUI() {
@@ -275,6 +316,68 @@
         function triggerScreenShake(magnitude, duration) {
             screenShakeMagnitude = Math.max(screenShakeMagnitude, magnitude);
             screenShakeTime = Math.max(screenShakeTime, duration);
+        }
+
+        // --- Supabase Functions ---
+        async function fetchLeaderboard() {
+            if (!supabaseClient) {
+                leaderboardEl.innerHTML = '<li>Supabase not configured.</li>';
+                return;
+            }
+            try {
+                const { data, error } = await supabaseClient
+                    .from('scores_towerdef')
+                    .select('player_name, score')
+                    .order('score', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                leaderboardEl.innerHTML = '';
+                if (data.length === 0) {
+                    leaderboardEl.innerHTML = '<li>No scores yet!</li>';
+                } else {
+                    data.forEach((entry, index) => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<span class="rank">${index + 1}.</span> <span class="name">${entry.player_name}</span> <span class="score">${entry.score}</span>`;
+                        leaderboardEl.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching leaderboard:', error);
+                leaderboardEl.innerHTML = '<li>Error loading scores.</li>';
+            }
+        }
+
+        async function submitScore() {
+            if (!supabaseClient) return;
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert('Please enter a name!');
+                return;
+            }
+            
+            submitScoreBtn.disabled = true;
+            submitScoreBtn.textContent = 'Submitting...';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('scores_towerdef')
+                    .insert([{ player_name: playerName, score: wave }]);
+                
+                if (error) throw error;
+                
+                gameOverModal.style.display = 'none';
+                fetchLeaderboard();
+                init();
+
+            } catch (error) {
+                console.error('Error submitting score:', error);
+                alert('Failed to submit score. Please try again.');
+            } finally {
+                submitScoreBtn.disabled = false;
+                submitScoreBtn.textContent = 'Submit Score';
+            }
         }
 
         // --- Classes ---
@@ -993,6 +1096,7 @@
         });
         canvas.addEventListener('click', handleCanvasClick);
         playAgainBtn.addEventListener('click', init);
+        submitScoreBtn.addEventListener('click', submitScore);
         restartBtn.addEventListener('click', () => { confirmRestartModal.style.display = 'flex'; });
         cancelRestartBtn.addEventListener('click', () => { confirmRestartModal.style.display = 'none'; });
         confirmRestartBtn.addEventListener('click', init);
