@@ -168,13 +168,7 @@
                     <h3>⚙️ Controls</h3>
                     <button class="tower-btn" id="start-wave-btn" style="background-color: #4CAF50;">Start Next Wave</button>
                     <button class="tower-btn" id="restart-btn" style="background-color: #ff9800;">Restart</button>
-                </div>
-                
-                <div class="ui-box">
-                    <h3>🏆 Leaderboard</h3>
-                    <ul id="leaderboard" class="leaderboard">
-                        <li>Loading...</li>
-                    </ul>
+                    <button class="tower-btn" id="leaderboard-btn" style="background-color: #607d8b;">🏆 Leaderboard</button>
                 </div>
             </div>
         </div>
@@ -202,13 +196,22 @@
         </div>
     </div>
 
+    <div id="leaderboardModal" class="modal">
+        <div class="modal-content">
+            <h2>🏆 Leaderboard</h2>
+            <ul id="leaderboard" class="leaderboard">
+                <li>Loading...</li>
+            </ul>
+            <button id="closeLeaderboardBtn" class="modal-btn cancel-btn" style="margin-top: 20px;">Close</button>
+        </div>
+    </div>
+
     <script>
         // --- Supabase Setup ---
         const SUPABASE_URL = 'https://miixidjkojjuwiikklvo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1paXhpZGprb2pqdXdpaWtrbHZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNzkzMjYsImV4cCI6MjA2Nzc1NTMyNn0.j5xBHAUginwitWKo_ADOXSHM0C-UWv8HLZgY8efmVeQ';
         let supabaseClient = null;
         if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-            // The global `supabase` object is provided by the script tag
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
@@ -235,6 +238,9 @@
         const confirmRestartModal = document.getElementById('confirmRestartModal');
         const confirmRestartBtn = document.getElementById('confirmRestart');
         const cancelRestartBtn = document.getElementById('cancelRestart');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardModal = document.getElementById('leaderboardModal');
+        const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
         const leaderboardEl = document.getElementById('leaderboard');
 
         // --- Game Setup ---
@@ -324,6 +330,7 @@
                 leaderboardEl.innerHTML = '<li>Supabase not configured.</li>';
                 return;
             }
+            leaderboardEl.innerHTML = '<li>Loading...</li>';
             try {
                 const { data, error } = await supabaseClient
                     .from('scores_towerdef')
@@ -1100,6 +1107,13 @@
         restartBtn.addEventListener('click', () => { confirmRestartModal.style.display = 'flex'; });
         cancelRestartBtn.addEventListener('click', () => { confirmRestartModal.style.display = 'none'; });
         confirmRestartBtn.addEventListener('click', init);
+        leaderboardBtn.addEventListener('click', () => {
+            fetchLeaderboard();
+            leaderboardModal.style.display = 'flex';
+        });
+        closeLeaderboardBtn.addEventListener('click', () => {
+            leaderboardModal.style.display = 'none';
+        });
         
         canvas.addEventListener('mousemove', e => {
             const rect = canvas.getBoundingClientRect();
