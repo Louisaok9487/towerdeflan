@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>史詩級塔防 - UI 體驗升級</title>
+    <title>史詩級塔防 - 策略深化版</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -141,6 +141,7 @@
                     <button class="tower-btn" id="select-laser">⚡️ 雷射塔 (80$)</button>
                     <button class="tower-btn" id="select-ice">❄️ 冰霜塔 (60$)</button>
                     <button class="tower-btn" id="select-bomb">💣 炸彈塔 (100$)</button>
+                    <button class="tower-btn" id="select-goldmine">💰 金礦 (120$)</button>
                 </div>
 
                 <div class="ui-box">
@@ -184,7 +185,8 @@
             turret: document.getElementById('select-turret'),
             laser: document.getElementById('select-laser'),
             ice: document.getElementById('select-ice'),
-            bomb: document.getElementById('select-bomb')
+            bomb: document.getElementById('select-bomb'),
+            goldmine: document.getElementById('select-goldmine')
         };
         const restartBtn = document.getElementById('restart-btn');
         const gameOverModal = document.getElementById('gameOverModal');
@@ -202,7 +204,7 @@
         const gridSize = 40;
 
         // --- Game State ---
-        let money, lives, wave, enemies, towers, projectiles;
+        let money, lives, wave, enemies, towers, projectiles, floatingTexts;
         let selectedTowerType = null;
         let selectedTower = null;
         let waveInProgress = false;
@@ -224,6 +226,7 @@
             enemies = [];
             towers = [];
             projectiles = [];
+            floatingTexts = [];
             waveInProgress = false;
             deselectAll();
             updateUI();
@@ -239,13 +242,30 @@
             livesEl.textContent = lives;
             waveEl.textContent = wave;
         }
-
-        function triggerScreenShake(magnitude, duration) {
-            screenShakeMagnitude = magnitude;
-            screenShakeTime = duration;
-        }
         
         // --- Classes ---
+        class FloatingText {
+            constructor(text, x, y, color = 'white', size = 20) {
+                this.text = text; this.x = x; this.y = y;
+                this.color = color; this.size = size;
+                this.life = 60; this.opacity = 1;
+            }
+            update() {
+                this.y -= 0.5;
+                this.life--;
+                this.opacity = this.life / 60;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = this.color;
+                ctx.font = `bold ${this.size}px 'Noto Sans TC'`;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
         class Enemy {
             constructor(health, speed, emoji) {
                 this.x = path[0].x - 20; this.y = path[0].y;
@@ -253,7 +273,7 @@
                 this.maxHealth = health; this.health = health;
                 this.baseSpeed = speed; this.speed = speed;
                 this.emoji = emoji; this.size = 25;
-                this.hitTimer = 0; this.slowTimer = 0;
+                this.hitTimer = 0; this.slowTimer = 0; this.stunTimer = 0;
             }
             draw() {
                 ctx.save();
@@ -266,6 +286,7 @@
                 ctx.font = `${this.size}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                if (this.stunTimer > 0) ctx.fillText('💫', this.x, this.y - 30);
                 if (this.slowTimer > 0) ctx.filter = 'saturate(2) hue-rotate(180deg)';
                 if (this.hitTimer > 0) {
                     ctx.globalAlpha = 0.5 + (this.hitTimer % 2) * 0.5;
@@ -275,8 +296,10 @@
                 ctx.restore();
             }
             takeDamage(amount) { this.health -= amount; this.hitTimer = 10; }
-            applySlow(duration, factor) { this.slowTimer = duration; this.speed = this.baseSpeed * factor; }
+            applySlow(duration, factor) { this.slowTimer = Math.max(this.slowTimer, duration); this.speed = this.baseSpeed * factor; }
+            applyStun(duration) { this.stunTimer = Math.max(this.stunTimer, duration); }
             update(deltaTime) {
+                if (this.stunTimer > 0) { this.stunTimer -= deltaTime; return; }
                 if (this.slowTimer > 0) {
                     this.slowTimer -= deltaTime;
                     if (this.slowTimer <= 0) this.speed = this.baseSpeed;
@@ -285,7 +308,7 @@
             }
             move() {
                 if (this.pathIndex >= path.length - 1) {
-                    lives--; triggerScreenShake(5, 15); updateUI(); this.health = 0;
+                    lives--; updateUI(); this.health = 0;
                     if (lives <= 0) gameOver(false);
                     return;
                 }
@@ -302,6 +325,29 @@
         class NormalEnemy extends Enemy { constructor() { super(60 + wave * 15, 1.2 + wave * 0.1, '🐛'); } }
         class FastEnemy extends Enemy { constructor() { super(40 + wave * 10, 2.2 + wave * 0.15, '🐜'); } }
         class ArmoredEnemy extends Enemy { constructor() { super(200 + wave * 40, 0.8 + wave * 0.05, '🛡️'); } }
+        class HealerEnemy extends Enemy {
+            constructor() {
+                super(80 + wave * 15, 1.0 + wave * 0.1, '➕');
+                this.healCooldown = 0;
+                this.healRange = 80;
+            }
+            update(deltaTime) {
+                super.update(deltaTime);
+                this.healCooldown -= deltaTime;
+                if (this.healCooldown <= 0) {
+                    let healed = false;
+                    for (const enemy of enemies) {
+                        if (enemy !== this && enemy.health < enemy.maxHealth && Math.hypot(this.x - enemy.x, this.y - enemy.y) <= this.healRange) {
+                            enemy.health = Math.min(enemy.maxHealth, enemy.health + 20);
+                            projectiles.push(new HealEffect(enemy.x, enemy.y));
+                            healed = true;
+                            break;
+                        }
+                    }
+                    if (healed) this.healCooldown = 2000;
+                }
+            }
+        }
         
         class Tower {
             constructor(x, y, cost, emoji) {
@@ -372,7 +418,7 @@
                 }
             }
             upgrade() {
-                if (this.level < 2 && money >= this.upgradeCost) {
+                if (this.level < 3 && money >= this.upgradeCost) {
                     money -= this.upgradeCost;
                     this.level++;
                     this.totalSpent += this.upgradeCost;
@@ -381,36 +427,47 @@
                     deselectAll();
                 }
             }
+            update(deltaTime) { this.updateBase(deltaTime); }
         }
 
         class Turret extends Tower {
             constructor(x, y) { super(x, y, 50, '🔫'); this.applyLevelStats(); }
             applyLevelStats() {
                 if (this.level === 1) this.setStats(150, 2, 15, 75);
-                else if (this.level === 2) this.setStats(170, 2.5, 25, 0);
+                else if (this.level === 2) this.setStats(170, 2.5, 25, 150);
+                else if (this.level === 3) this.setStats(190, 3, 30, 0);
             }
-            update(deltaTime) { this.updateBase(deltaTime); }
-            attack() { projectiles.push(new Bullet(this.x, this.y, this.target, this.damage)); }
+            attack() {
+                let pierceCount = this.level === 3 ? 1 : 0;
+                projectiles.push(new Bullet(this.x, this.y, this.target, this.damage, pierceCount));
+            }
         }
 
         class LaserTower extends Tower {
             constructor(x, y) { super(x, y, 80, '⚡️'); this.applyLevelStats(); }
             applyLevelStats() {
                 if (this.level === 1) this.setStats(120, 10, 25, 120);
-                else if (this.level === 2) this.setStats(140, 10, 45, 0);
+                else if (this.level === 2) this.setStats(140, 10, 45, 200);
+                else if (this.level === 3) this.setStats(160, 10, 60, 0);
             }
             update(deltaTime) {
                 this.findTarget();
                 if (this.target) {
                     this.angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-                    if (this.isInRange(this.target)) this.target.takeDamage(this.damage * (deltaTime / 1000));
+                    if (this.isInRange(this.target)) {
+                        this.target.takeDamage(this.damage * (deltaTime / 1000));
+                        if (this.level === 3 && Math.random() < 0.1) {
+                            this.target.applyStun(200);
+                        }
+                    }
                 }
             }
             draw() {
                 super.draw();
                 if (this.target && this.isInRange(this.target) && this.target.health > 0) {
                     ctx.save();
-                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)'; ctx.lineWidth = 3;
+                    ctx.strokeStyle = this.level === 3 ? 'rgba(0, 255, 255, 0.8)' : 'rgba(255, 255, 0, 0.7)';
+                    ctx.lineWidth = this.level === 3 ? 4 : 3;
                     ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.target.x, this.target.y); ctx.stroke();
                     ctx.restore();
                 }
@@ -421,20 +478,45 @@
             constructor(x, y) { super(x, y, 60, '❄️'); this.applyLevelStats(); }
             applyLevelStats() {
                 if (this.level === 1) this.setStats(130, 1, 2, 90);
-                else if (this.level === 2) this.setStats(150, 1.5, 4, 0);
+                else if (this.level === 2) this.setStats(150, 1.5, 4, 180);
+                else if (this.level === 3) this.setStats(170, 2, 5, 0);
             }
-            update(deltaTime) { this.updateBase(deltaTime); }
-            attack() { projectiles.push(new IceShard(this.x, this.y, this.target, this.damage)); }
+            attack() {
+                const slowFactor = this.level === 3 ? 0.3 : 0.5;
+                projectiles.push(new IceShard(this.x, this.y, this.target, this.damage, slowFactor));
+            }
         }
         
         class BombTower extends Tower {
             constructor(x, y) { super(x, y, 100, '💣'); this.applyLevelStats(); }
             applyLevelStats() {
                 if (this.level === 1) this.setStats(160, 0.5, 30, 150);
-                else if (this.level === 2) this.setStats(180, 0.7, 50, 0);
+                else if (this.level === 2) this.setStats(180, 0.7, 50, 250);
+                else if (this.level === 3) this.setStats(200, 0.8, 70, 0);
             }
-            update(deltaTime) { this.updateBase(deltaTime); }
-            attack() { projectiles.push(new Bomb(this.x, this.y, this.target, this.damage)); }
+            attack() {
+                const splashRadius = this.level === 3 ? 70 : 50;
+                projectiles.push(new Bomb(this.x, this.y, this.target, this.damage, splashRadius));
+            }
+        }
+        
+        class GoldMine extends Tower {
+            constructor(x, y) { super(x, y, 120, '💰'); this.applyLevelStats(); this.generationCooldown = 0; }
+            applyLevelStats() {
+                if (this.level === 1) { this.setStats(0, 0, 0, 150); this.generationRate = 0.2; } // 1$/5s
+                else if (this.level === 2) { this.setStats(0, 0, 0, 250); this.generationRate = 0.5; } // 1$/2s
+                else if (this.level === 3) { this.setStats(0, 0, 0, 0); this.generationRate = 1; } // 1$/1s
+            }
+            update(deltaTime) {
+                this.generationCooldown -= deltaTime;
+                if (this.generationCooldown <= 0) {
+                    money++;
+                    updateUI();
+                    floatingTexts.push(new FloatingText('+1', this.x, this.y - 15, '#ffd700'));
+                    this.generationCooldown = 1000 / this.generationRate;
+                }
+            }
+            findTarget() {} // Does not attack
         }
 
         class Projectile {
@@ -446,7 +528,7 @@
                 const dx = this.target.x - this.x, dy = this.target.y - this.y;
                 const distance = Math.hypot(dx, dy);
                 if (distance < this.speed) {
-                    this.onHit();
+                    this.onHit(this.target);
                     return false;
                 } else {
                     this.x += (dx / distance) * this.speed; this.y += (dy / distance) * this.speed;
@@ -456,31 +538,71 @@
             draw() { ctx.save(); ctx.font = `${this.size}px sans-serif`; ctx.fillText(this.emoji, this.x, this.y); ctx.restore();}
         }
         class Bullet extends Projectile {
-            constructor(x, y, target, damage) { super(x, y, target, damage); this.speed = 10; this.emoji = '💥'; this.size = 15; }
-            onHit() { this.target.takeDamage(this.damage); }
+            constructor(x, y, target, damage, pierce) { super(x, y, target, damage); this.speed = 10; this.emoji = '💥'; this.size = 15; this.pierce = pierce; }
+            onHit(hitEnemy) {
+                hitEnemy.takeDamage(this.damage);
+                if (this.pierce > 0) {
+                    this.pierce--;
+                    this.target = null; // Find new target
+                    let closestDist = Infinity;
+                    for (const enemy of enemies) {
+                        if (enemy !== hitEnemy && Math.hypot(this.x - enemy.x, this.y - enemy.y) < closestDist) {
+                            this.target = enemy;
+                            closestDist = Math.hypot(this.x - enemy.x, this.y - enemy.y);
+                        }
+                    }
+                    return !!this.target; // Continue moving if new target found
+                }
+                return false;
+            }
+            move() { // Override move for piercing logic
+                if (!this.target || this.target.health <= 0) return false;
+                const dx = this.target.x - this.x, dy = this.target.y - this.y;
+                const distance = Math.hypot(dx, dy);
+                if (distance < this.speed) {
+                    return this.onHit(this.target);
+                } else {
+                    this.x += (dx / distance) * this.speed; this.y += (dy / distance) * this.speed;
+                    return true;
+                }
+            }
         }
         class IceShard extends Projectile {
-            constructor(x, y, target, damage) { super(x, y, target, damage); this.speed = 8; this.emoji = '❄️'; this.size = 18; }
-            onHit() { this.target.takeDamage(this.damage); this.target.applySlow(2000, 0.5); }
+            constructor(x, y, target, damage, slowFactor) { super(x, y, target, damage); this.speed = 8; this.emoji = '❄️'; this.size = 18; this.slowFactor = slowFactor; }
+            onHit(hitEnemy) { hitEnemy.takeDamage(this.damage); hitEnemy.applySlow(2000, this.slowFactor); }
         }
         class Bomb extends Projectile {
-            constructor(x, y, target, damage) { super(x, y, target, damage); this.speed = 5; this.emoji = '💣'; this.size = 20; this.splashRadius = 50; }
-            onHit() {
+            constructor(x, y, target, damage, splashRadius) { super(x, y, target, damage); this.speed = 5; this.emoji = '💣'; this.size = 20; this.splashRadius = splashRadius; }
+            onHit(hitEnemy) {
+                projectiles.push(new Explosion(hitEnemy.x, hitEnemy.y, this.splashRadius));
                 enemies.forEach(enemy => {
-                    if (Math.hypot(this.target.x - enemy.x, this.target.y - enemy.y) <= this.splashRadius) {
+                    if (Math.hypot(hitEnemy.x - enemy.x, hitEnemy.y - enemy.y) <= this.splashRadius) {
                         enemy.takeDamage(this.damage);
                     }
                 });
-                projectiles.push(new Explosion(this.target.x, this.target.y, this.splashRadius));
             }
         }
-        class Explosion {
-            constructor(x, y, radius) { this.x = x; this.y = y; this.maxRadius = radius; this.radius = 0; this.life = 20; }
-            move() { this.radius += this.maxRadius / 20; this.life--; return this.life > 0; }
+        class Effect {
+            constructor(x, y) { this.x = x; this.y = y; this.life = 30; }
+            move() { this.life--; return this.life > 0; }
+        }
+        class Explosion extends Effect {
+            constructor(x, y, radius) { super(x, y); this.maxRadius = radius; this.radius = 0; }
             draw() {
                 ctx.save();
-                ctx.fillStyle = `rgba(255, 165, 0, ${this.life / 20 * 0.7})`;
+                ctx.fillStyle = `rgba(255, 165, 0, ${this.life / 30 * 0.7})`;
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                this.radius += this.maxRadius / 30;
+                ctx.restore();
+            }
+        }
+        class HealEffect extends Effect {
+            draw() {
+                ctx.save();
+                ctx.font = '20px sans-serif';
+                ctx.fillStyle = `rgba(0, 255, 0, ${this.life / 30})`;
+                ctx.textAlign = 'center';
+                ctx.fillText('+', this.x, this.y - (30 - this.life) / 2);
                 ctx.restore();
             }
         }
@@ -492,7 +614,8 @@
             const enemyCount = 10 + wave * 2;
             for (let i = 0; i < enemyCount; i++) {
                 setTimeout(() => {
-                    if (wave >= 4 && Math.random() < 0.25) enemies.push(new ArmoredEnemy());
+                    if (wave >= 6 && Math.random() < 0.2) enemies.push(new HealerEnemy());
+                    else if (wave >= 4 && Math.random() < 0.25) enemies.push(new ArmoredEnemy());
                     else if (wave > 2 && Math.random() < 0.4) enemies.push(new FastEnemy());
                     else enemies.push(new NormalEnemy());
                 }, i * 500);
@@ -504,31 +627,27 @@
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
             
-            // Priority 1: Handle clicks on the active radial menu
             if (radialMenu.active) {
                 let optionClicked = false;
                 for (const option of radialMenu.options) {
                     if (Math.hypot(clickX - option.x, clickY - option.y) < option.radius) {
-                        option.action(); // Perform the upgrade or sell
+                        option.action();
                         optionClicked = true;
                         break;
                     }
                 }
-                // Always deselect after a click when the menu is open, whether on an option or not.
                 deselectAll();
-                return; // Stop further processing
+                return;
             }
 
-            // Priority 2: If a tower type is selected for building, try to place it
             if (selectedTowerType) {
                 placeTower();
-                return; // Stop further processing
+                return;
             }
 
-            // Priority 3: If nothing is being built, check if an existing tower was clicked
             for (const tower of towers) {
                 if (Math.hypot(clickX - tower.x, clickY - tower.y) < gridSize / 2) {
-                    selectTower(tower); // This will open the radial menu
+                    selectTower(tower);
                     return;
                 }
             }
@@ -538,7 +657,7 @@
             const x = mouse.snappedX; const y = mouse.snappedY;
             if (isOnPath(x, y) || towers.some(t => t.x === x && t.y === y)) return;
             
-            const costs = { turret: 50, laser: 80, ice: 60, bomb: 100 };
+            const costs = { turret: 50, laser: 80, ice: 60, bomb: 100, goldmine: 120 };
             const cost = costs[selectedTowerType];
 
             if (money >= cost) {
@@ -548,6 +667,7 @@
                 else if (selectedTowerType === 'laser') newTower = new LaserTower(x, y);
                 else if (selectedTowerType === 'ice') newTower = new IceTower(x, y);
                 else if (selectedTowerType === 'bomb') newTower = new BombTower(x, y);
+                else if (selectedTowerType === 'goldmine') newTower = new GoldMine(x, y);
                 towers.push(newTower);
                 updateUI();
             }
@@ -555,7 +675,7 @@
         }
         
         function selectBuildTower(type) {
-            const costs = { turret: 50, laser: 80, ice: 60, bomb: 100 };
+            const costs = { turret: 50, laser: 80, ice: 60, bomb: 100, goldmine: 120 };
             if (money < costs[type]) { deselectAll(); return; }
             
             if (selectedTowerType === type) {
@@ -600,7 +720,7 @@
             });
 
             // Upgrade Option
-            if (tower.level < 2) {
+            if (tower.level < 3 && tower.upgradeCost > 0) {
                 const upgradeAngle = -Math.PI / 4;
                 radialMenu.options.push({
                     x: tower.x + menuRadius * Math.cos(upgradeAngle),
@@ -657,15 +777,19 @@
 
             drawPlacementGrid();
 
-            enemies.forEach(e => e.update(deltaTime));
             towers.forEach(t => t.update(deltaTime));
+            enemies.forEach(e => e.update(deltaTime));
             projectiles = projectiles.filter(p => p.move());
+            floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+            floatingTexts.forEach(ft => ft.update());
+
 
             towers.forEach(t => t.draw());
             if (selectedTower) selectedTower.drawSelection();
             
             enemies.forEach(e => e.draw());
             projectiles.forEach(p => p.draw());
+            floatingTexts.forEach(ft => ft.draw());
             
             drawRadialMenu();
 
@@ -677,7 +801,14 @@
             }
             
             if (waveInProgress && enemies.length === 0) {
-                waveInProgress = false; startWaveBtn.disabled = false;
+                waveInProgress = false;
+                startWaveBtn.disabled = false;
+                const interest = Math.floor(money * 0.1);
+                if (interest > 0) {
+                    money += interest;
+                    floatingTexts.push(new FloatingText(`+${interest}$`, 700, 50, '#00ff00', 24));
+                    updateUI();
+                }
             }
             
             drawTowerPreview();
@@ -705,7 +836,7 @@
             if (!selectedTowerType) return;
             ctx.save();
             const x = mouse.snappedX; const y = mouse.snappedY;
-            const ranges = { turret: 150, laser: 120, ice: 130, bomb: 160 };
+            const ranges = { turret: 150, laser: 120, ice: 130, bomb: 160, goldmine: 0 };
 
             if (isOnPath(x, y) || towers.some(t => t.x === x && t.y === y)) {
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
@@ -714,8 +845,10 @@
             }
             ctx.fillRect(x - gridSize/2, y - gridSize/2, gridSize, gridSize);
             
-            ctx.beginPath(); ctx.arc(x, y, ranges[selectedTowerType], 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
+            if (ranges[selectedTowerType] > 0) {
+                ctx.beginPath(); ctx.arc(x, y, ranges[selectedTowerType], 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
+            }
             ctx.restore();
         }
         
