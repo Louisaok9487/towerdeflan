@@ -243,6 +243,11 @@
             waveEl.textContent = wave;
         }
         
+        function triggerScreenShake(magnitude, duration) {
+            screenShakeMagnitude = Math.max(screenShakeMagnitude, magnitude);
+            screenShakeTime = Math.max(screenShakeTime, duration);
+        }
+
         // --- Classes ---
         class FloatingText {
             constructor(text, x, y, color = 'white', size = 20) {
@@ -312,7 +317,10 @@
             }
             move() {
                 if (this.pathIndex >= path.length - 1) {
-                    lives--; updateUI(); this.health = 0;
+                    lives--; 
+                    triggerScreenShake(8, 20); // Shake screen on life loss
+                    updateUI(); 
+                    this.health = 0;
                     if (lives <= 0) gameOver(false);
                     return;
                 }
@@ -538,7 +546,7 @@
                     money += income;
                     updateUI();
                     floatingTexts.push(new FloatingText(`+${income}`, this.x, this.y - 15, '#ffd700'));
-                    this.generationCooldown = 5000;
+                    this.generationCooldown += 5000; // Add to cooldown to prevent drift
                 }
             }
             findTarget() {} // Does not attack
